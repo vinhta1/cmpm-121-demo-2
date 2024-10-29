@@ -37,10 +37,6 @@ canvas?.addEventListener("mousedown", (input) => {
 });
 canvas?.addEventListener("mousemove", (input) => {
     if (cursor.active){
-        // context.beginPath();
-        // context.moveTo(cursor.x, cursor.y);
-        // context.lineTo(input.offsetX, input.offsetY);
-        // context.stroke();
         cursor.x = input.offsetX; cursor.y = input.offsetY;
         currentLine.push({x: cursor.x, y: cursor.y});
         dispatchEvent(drawingChanged);
@@ -73,7 +69,6 @@ clearButton.innerHTML = "clear";
 canvasArea.append(clearButton);
 
 clearButton.addEventListener("click", () => {
-    //context.clearRect(0, 0, canvas?.offsetWidth, canvas?.offsetHeight);
     lines.splice(0, lines.length);
     dispatchEvent(drawingChanged);
 });
