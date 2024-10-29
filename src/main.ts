@@ -3,6 +3,7 @@ import "./style.css";
 const APP_NAME = "Sketch-a-Stick";
 const app = document.querySelector<HTMLDivElement>("#app")!;
 const canvasArea = <HTMLDivElement> document.getElementById("canvasArea");
+const buttonArea = <HTMLDivElement> document.getElementById("buttonArea");
 document.title = APP_NAME;
 const appTitle = document.createElement("h1");
 appTitle.innerHTML = APP_NAME;
@@ -66,11 +67,34 @@ function redraw(){
 //clear button
 const clearButton = document.createElement("button");
 clearButton.innerHTML = "clear";
-canvasArea.append(clearButton);
+buttonArea.append(clearButton);
 
 clearButton.addEventListener("click", () => {
     lines.splice(0, lines.length);
+    redoLines.splice(0,redoLines.length);
     dispatchEvent(drawingChanged);
+});
+
+const undoButton = document.createElement("button");
+undoButton.innerHTML = "undo";
+buttonArea.append(undoButton);
+
+undoButton.addEventListener("click", () => {
+    if (lines.length > 0){
+        redoLines.push(lines.pop());
+        dispatchEvent(drawingChanged);
+    }
+});
+
+const redoButton = document.createElement("button");
+redoButton.innerHTML = "redo";
+buttonArea.append(redoButton);
+
+redoButton.addEventListener("click", () => {
+    if (redoLines.length > 0){
+        lines.push(redoLines.pop());
+        dispatchEvent(drawingChanged);
+    }
 });
 
 
@@ -78,7 +102,7 @@ app.append(appTitle);
 
 //Test
 for ( let i = 0; i <= 3; i ++){
-    let x = i * 10 + 30; let y = i * 30;
+    let x = i * 10 + 30; let y = i * 30 + 30;
     currentLine = [];
     currentLine.push({x,y});
     y *= 2;
