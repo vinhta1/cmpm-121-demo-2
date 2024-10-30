@@ -12,15 +12,50 @@ appTitle.innerHTML = APP_NAME;
 const canvas = <HTMLCanvasElement> document.getElementById("canvas");
 const context = <CanvasRenderingContext2D> canvas.getContext("2d");
 
-//Line arrays
-interface point {
-    x: number,
-    y: number
+//commands
+interface Displayable{
+    display(context: CanvasRenderingContext2D): void
 }
-const lines: point[][] = [];
-const redoLines: point[][] = [];
 
-let currentLine: point[] = [];
+interface DrawCommand extends Displayable{
+    initialPositon: {initialX: number, initialY: number},
+    display(context: CanvasRenderingContext2D): void;
+}
+
+interface LineCommand extends DrawCommand{
+    initialPositon: {initialX: number, initialY: number},
+    points: {x: number, y: number}[],
+    display(context: CanvasRenderingContext2D): void,
+    drag(x: number, y: number): void;
+}
+
+const commandArray: Displayable[] = [];
+const redoCommandArray: Displayable[] = [];
+
+let currentCommand: Displayable;
+
+//createLineCommand thanks Brace
+function createLineCommand(initialX: number, initialY: number, context: CanvasRenderingContext2D): LineCommand{
+    const points: {x: number, y: number}[] = [{x: initialX, y: initialY}];
+
+    return {
+        initialPositon: {initialX, initialY},
+        points,
+        display(context): void {
+            context.strokeStyle = "black";
+            context.lineWidth = 5;
+            context.beginPath();
+            context.moveTo(initialX,initialY);
+            this.points.forEach(point => {
+                context.lineTo(point.x, point.y);
+            });
+            context.stroke();
+        },
+        drag(x, y){
+            this.points.push({x, y});
+        }
+    };
+}
 
 //Mouse drawing, yoinked from https://quant-paint.glitch.me/paint0.html
 const cursor = {active: false, x: 0, y: 0}
@@ -30,16 +65,17 @@ canvas?.addEventListener("mousedown", (input) => {
     cursor.active = true;
     cursor.x = input.offsetX; cursor.y = input.offsetY;
     
-    currentLine = [];
-    lines.push(currentLine);
-    currentLine.push({x: cursor.x, y: cursor.y});
+    
+    redoCommandArray.splice(0,redoCommandArray.length);
+    currentCommand = createLineCommand(cursor.x, cursor.y, context);
+    commandArray.push(currentCommand);
     dispatchEvent(drawingChanged);
 
 });
 canvas?.addEventListener("mousemove", (input) => {
     if (cursor.active){
         cursor.x = input.offsetX; cursor.y = input.offsetY;
-        currentLine.push({x: cursor.x, y: cursor.y});
+        (currentCommand as LineCommand).drag(cursor.x, cursor.y);
         dispatchEvent(drawingChanged);
     }
 });
@@ -53,15 +89,8 @@ addEventListener("drawing-changed", ()=>{redraw()});
 function redraw(){
     console.log("Redraw");
     context.clearRect(0, 0, canvas?.offsetWidth, canvas?.offsetHeight);
-    for (const line of lines){
-        context.beginPath();
-        const {x, y} = line[0]
-        context.moveTo(x, y);
-        for (const {x, y} of line){
-            context.lineTo(x,y);
-        }
-    context.stroke();
-    }
+    
+    commandArray.forEach((cmd) => cmd.display(context));
 }
 
 //clear button
@@ -70,8 +99,8 @@ clearButton.innerHTML = "clear";
 buttonArea.append(clearButton);
 
 clearButton.addEventListener("click", () => {
-    lines.splice(0, lines.length);
-    redoLines.splice(0,redoLines.length);
+    commandArray.splice(0, commandArray.length);
+    redoCommandArray.splice(0,redoCommandArray.length);
     dispatchEvent(drawingChanged);
 });
 
@@ -80,8 +109,8 @@ undoButton.innerHTML = "undo";
 buttonArea.append(undoButton);
 
 undoButton.addEventListener("click", () => {
-    if (lines.length > 0){
-        redoLines.push(lines.pop());
+    if (commandArray.length > 0){
+        redoCommandArray.push(commandArray.pop()!);
         dispatchEvent(drawingChanged);
     }
 });
@@ -91,8 +120,8 @@ redoButton.innerHTML = "redo";
 buttonArea.append(redoButton);
 
 redoButton.addEventListener("click", () => {
-    if (redoLines.length > 0){
-        lines.push(redoLines.pop());
+    if (redoCommandArray.length > 0){
+        commandArray.push(redoCommandArray.pop()!);
         dispatchEvent(drawingChanged);
     }
 });
@@ -101,12 +130,12 @@ redoButton.addEventListener("click", () => {
 app.append(appTitle);
 
 //Test
-for ( let i = 0; i <= 3; i ++){
-    let x = i * 10 + 30; let y = i * 30 + 30;
-    currentLine = [];
-    currentLine.push({x,y});
-    y *= 2;
-    currentLine.push({x,y});
-    lines.push(currentLine);
-    dispatchEvent(drawingChanged);
-}
+// for ( let i = 0; i <= 3; i ++){
+//     let x = i * 10 + 30; let y = i * 30 + 30;
+//     currentCommand = [];
+//     currentCommand.push({x,y});
+//     y *= 2;
+//     currentCommand.push({x,y});
+//     commandArray.push(currentCommand);
+//     dispatchEvent(drawingChanged);
+// }
