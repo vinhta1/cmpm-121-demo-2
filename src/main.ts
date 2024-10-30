@@ -14,7 +14,7 @@ const canvas = <HTMLCanvasElement> document.getElementById("canvas");
 const context = <CanvasRenderingContext2D> canvas.getContext("2d");
 
 //Variables
-let lineWidth: number
+let lineWidth: number = 1;
 
 //commands
 interface Displayable{
@@ -33,10 +33,16 @@ interface LineCommand extends DrawCommand{
     drag(x: number, y: number): void;
 }
 
+interface mousePreviewCommand extends DrawCommand{
+    initialPositon: {initialX: number, initialY: number}
+    display(context: CanvasRenderingContext2D): void,
+}
+
 const commandArray: Displayable[] = [];
 const redoCommandArray: Displayable[] = [];
 
 let currentCommand: Displayable;
+let cursorCommand: any = null;
 
 //createLineCommand thanks Brace
 function createLineCommand(initialX: number, initialY: number, context: CanvasRenderingContext2D): LineCommand{
@@ -64,40 +70,79 @@ function createLineCommand(initialX: number, initialY: number, context: CanvasRe
     };
 }
 
+function createMousePreviewCommand(initialX: number, initialY: number, context: CanvasRenderingContext2D): mousePreviewCommand{
+    const thisLineWidth = lineWidth;
+
+    return {
+        initialPositon: {initialX, initialY},
+        display(context): void {
+            context.save();
+            context.strokeStyle = "black";
+            context.lineWidth = thisLineWidth;
+            context.beginPath();
+            context.moveTo(initialX-thisLineWidth/2,initialY-thisLineWidth/2);
+            context.lineTo(initialX+thisLineWidth/2,initialY+thisLineWidth/2);
+            context.stroke();
+            context.restore();
+        }
+    };
+}
+
 //Mouse drawing, yoinked from https://quant-paint.glitch.me/paint0.html
 const cursor = {active: false, x: 0, y: 0}
 const drawingChanged = new Event("drawing-changed");
+const toolMoved = new Event("tool-moved");
+
+canvas?.addEventListener("mouseenter", (input) => {
+
+    cursorCommand = createMousePreviewCommand(input.offsetX, input.offsetY, context);
+    dispatchEvent(toolMoved);
+
+});
+
+canvas?.addEventListener("mouseout", () => {
+    cursorCommand = null;
+    dispatchEvent(toolMoved);
+
+});
 
 canvas?.addEventListener("mousedown", (input) => {
     cursor.active = true;
-    cursor.x = input.offsetX; cursor.y = input.offsetY;
+    cursorCommand = null;
+    //input.offsetX = input.offsetX; input.offsetY = input.offsetY;
     
     
     redoCommandArray.splice(0,redoCommandArray.length);
-    currentCommand = createLineCommand(cursor.x, cursor.y, context);
+    currentCommand = createLineCommand(input.offsetX, input.offsetY, context);
     commandArray.push(currentCommand);
     dispatchEvent(drawingChanged);
 
 });
 canvas?.addEventListener("mousemove", (input) => {
     if (cursor.active){
-        cursor.x = input.offsetX; cursor.y = input.offsetY;
-        (currentCommand as LineCommand).drag(cursor.x, cursor.y);
+        //input.offsetX = input.offsetX; input.offsetY = input.offsetY;
+        (currentCommand as LineCommand).drag(input.offsetX, input.offsetY);
         dispatchEvent(drawingChanged);
+    } else {
+        cursorCommand = createMousePreviewCommand(input.offsetX, input.offsetY, context);
+        dispatchEvent(toolMoved);
     }
 });
-addEventListener("mouseup", () => {
+addEventListener("mouseup", (input) => {
     cursor.active = false;
     dispatchEvent(drawingChanged);
 });
 
 addEventListener("drawing-changed", ()=>{redraw()});
+addEventListener("tool-moved", ()=>{redraw()});
 
 function redraw(){
     console.log("Redraw");
     context.clearRect(0, 0, canvas?.offsetWidth, canvas?.offsetHeight);
     
     commandArray.forEach((cmd) => cmd.display(context));
+
+    if (cursorCommand) {cursorCommand.display(context)};
 }
 
 //canvas buttons
