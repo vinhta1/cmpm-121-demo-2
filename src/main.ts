@@ -3,7 +3,8 @@ import "./style.css";
 const APP_NAME = "Sketch-a-Stick";
 const app = document.querySelector<HTMLDivElement>("#app")!;
 const canvasArea = <HTMLDivElement> document.getElementById("canvasArea");
-const buttonArea = <HTMLDivElement> document.getElementById("buttonArea");
+const canvasButtons = <HTMLDivElement> document.getElementById("canvasButtons");
+const markerButtons = <HTMLDivElement> document.getElementById("markerButtons");
 document.title = APP_NAME;
 const appTitle = document.createElement("h1");
 appTitle.innerHTML = APP_NAME;
@@ -11,6 +12,9 @@ appTitle.innerHTML = APP_NAME;
 //Canvas
 const canvas = <HTMLCanvasElement> document.getElementById("canvas");
 const context = <CanvasRenderingContext2D> canvas.getContext("2d");
+
+//Variables
+let lineWidth: number
 
 //commands
 interface Displayable{
@@ -37,19 +41,22 @@ let currentCommand: Displayable;
 //createLineCommand thanks Brace
 function createLineCommand(initialX: number, initialY: number, context: CanvasRenderingContext2D): LineCommand{
     const points: {x: number, y: number}[] = [{x: initialX, y: initialY}];
+    const thisLineWidth = lineWidth;
 
     return {
         initialPositon: {initialX, initialY},
         points,
         display(context): void {
+            context.save();
             context.strokeStyle = "black";
-            context.lineWidth = 5;
+            context.lineWidth = thisLineWidth;
             context.beginPath();
             context.moveTo(initialX,initialY);
             this.points.forEach(point => {
                 context.lineTo(point.x, point.y);
             });
             context.stroke();
+            context.restore();
         },
         drag(x, y){
             this.points.push({x, y});
@@ -93,10 +100,10 @@ function redraw(){
     commandArray.forEach((cmd) => cmd.display(context));
 }
 
-//clear button
+//canvas buttons
 const clearButton = document.createElement("button");
 clearButton.innerHTML = "clear";
-buttonArea.append(clearButton);
+canvasButtons.append(clearButton);
 
 clearButton.addEventListener("click", () => {
     commandArray.splice(0, commandArray.length);
@@ -106,7 +113,7 @@ clearButton.addEventListener("click", () => {
 
 const undoButton = document.createElement("button");
 undoButton.innerHTML = "undo";
-buttonArea.append(undoButton);
+canvasButtons.append(undoButton);
 
 undoButton.addEventListener("click", () => {
     if (commandArray.length > 0){
@@ -117,7 +124,7 @@ undoButton.addEventListener("click", () => {
 
 const redoButton = document.createElement("button");
 redoButton.innerHTML = "redo";
-buttonArea.append(redoButton);
+canvasButtons.append(redoButton);
 
 redoButton.addEventListener("click", () => {
     if (redoCommandArray.length > 0){
@@ -126,6 +133,22 @@ redoButton.addEventListener("click", () => {
     }
 });
 
+//marker buttons
+const thinMarker = document.createElement("button");
+thinMarker.innerHTML = "thin";
+markerButtons.append(thinMarker);
+
+thinMarker.addEventListener("click", () => {
+    lineWidth = 1;
+});
+
+const thickMarker = document.createElement("button");
+thickMarker.innerHTML = "thick";
+markerButtons.append(thickMarker);
+
+thickMarker.addEventListener("click", () => {
+    lineWidth = 5;
+});
 
 app.append(appTitle);
 
