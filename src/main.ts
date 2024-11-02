@@ -78,22 +78,17 @@ function createLineCommand(initialX: number, initialY: number, context: CanvasRe
     };
 }
 
-function createStickCommand(initialX: number, initialY: number, context: CanvasRenderingContext2D): StickerCommand{
-
+function createStickerCommand(initialX: number, initialY: number, context: CanvasRenderingContext2D): StickerCommand{
+    const thisStickerChoice = stickerChoice;
     return {
         initialPositon: {initialX, initialY},
         display(context): void {
             context.save();
-            context.beginPath();
-            context.moveTo(initialX,initialY);
-            this.points.forEach(point => {
-                context.lineTo(point.x, point.y);
-            });
-            context.stroke();
+            context.fillText(thisStickerChoice,initialX, initialY);
             context.restore();
         },
         drag(x, y){
-            this.points.push({x, y});
+            
         }
     };
 }
@@ -139,14 +134,15 @@ canvas?.addEventListener("mousedown", (input) => {
     cursorCommand = null;
     
     redoCommandArray.splice(0,redoCommandArray.length);
-    currentCommand = createLineCommand(input.offsetX, input.offsetY, context);
+    //currentCommand = createLineCommand(input.offsetX, input.offsetY, context);
+    currentCommand = createStickerCommand(input.offsetX, input.offsetY, context);
     commandArray.push(currentCommand);
     dispatchEvent(drawingChanged);
 
 });
 canvas?.addEventListener("mousemove", (input) => {
     if (cursor.active){
-        (currentCommand as LineCommand).drag(input.offsetX, input.offsetY);
+        //(currentCommand as LineCommand).drag(input.offsetX, input.offsetY);
         dispatchEvent(drawingChanged);
     } else {
         cursorCommand = createPreviewCommand(input.offsetX, input.offsetY, context);
