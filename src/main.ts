@@ -17,6 +17,7 @@ const context = <CanvasRenderingContext2D> canvas.getContext("2d");
 //Variables
 let lineWidth: number = 1;
 let stickerChoice: string = "";
+let commandFlag = 0;
 
 //commands
 interface Displayable{
@@ -126,7 +127,7 @@ canvas?.addEventListener("mouseenter", (input) => {
 canvas?.addEventListener("mouseout", () => {
     cursorCommand = null;
     dispatchEvent(toolMoved);
-
+    console.log(lineWidth);
 });
 
 canvas?.addEventListener("mousedown", (input) => {
@@ -134,15 +135,29 @@ canvas?.addEventListener("mousedown", (input) => {
     cursorCommand = null;
     
     redoCommandArray.splice(0,redoCommandArray.length);
-    //currentCommand = createLineCommand(input.offsetX, input.offsetY, context);
-    currentCommand = createStickerCommand(input.offsetX, input.offsetY, context);
+    switch (commandFlag){
+        case 0:
+            currentCommand = createLineCommand(input.offsetX, input.offsetY, context);
+            break;
+        case 1:
+            currentCommand = createStickerCommand(input.offsetX, input.offsetY, context);
+            break;
+    }
     commandArray.push(currentCommand);
     dispatchEvent(drawingChanged);
 
 });
 canvas?.addEventListener("mousemove", (input) => {
     if (cursor.active){
-        //(currentCommand as LineCommand).drag(input.offsetX, input.offsetY);
+        cursor.x = input.offsetX; cursor.y = input.offsetY;
+        switch (commandFlag){
+            case 0:
+                (currentCommand as LineCommand).drag(input.offsetX, input.offsetY);
+                break;
+            case 1:
+                currentCommand = createStickerCommand(input.offsetX, input.offsetY, context);
+                break;
+        }
         dispatchEvent(drawingChanged);
     } else {
         cursorCommand = createPreviewCommand(input.offsetX, input.offsetY, context);
@@ -202,23 +217,25 @@ redoButton.addEventListener("click", () => {
 });
 
 //marker buttons
-const thinMarker = document.createElement("button");
-thinMarker.innerHTML = "thin";
-markerButtons.append(thinMarker);
+const markerArray: any = [];
+function createMarker(name: string, effect: (any) => void) {   //create a new sticker function
+    const newMarker = document.createElement("button");
+    newMarker.innerHTML = name;
+    markerButtons.append(newMarker);
 
-thinMarker.addEventListener("click", () => {
-    lineWidth = 1;
-    stickerChoice = "";
-});
+    newMarker.addEventListener("click", effect);
 
-const thickMarker = document.createElement("button");
-thickMarker.innerHTML = "thick";
-markerButtons.append(thickMarker);
+    return newMarker;
+}
 
-thickMarker.addEventListener("click", () => {
-    lineWidth = 5;
-    stickerChoice = "";
-});
+const markers = [
+    {name: "thin", effect: () => {lineWidth = 1; stickerChoice = ""; commandFlag = 0;}},
+    {name: "thick", effect: () => {lineWidth = 5; stickerChoice = ""; commandFlag = 0;}}
+]
+
+markers.forEach((marker)=>{
+    markerArray.push(createMarker(marker.name, marker.effect));
+})
 
 //sticker buttons
 const stickerArray: any = [];
@@ -232,15 +249,15 @@ function createSticker(sticker: string, effect: (any) => void) {   //create a ne
     return newSticker;
 }
 
-for (let i = 0; i < 3; i++){
-    let stickers = ["👁️", "👄","🥚"];
-    stickerArray[0] = createSticker(stickers[i],
-        () => {
-            stickerChoice = stickers[i];
-            dispatchEvent(toolMoved);
-        }
-    );
-}
+const stickers = [ //not sure why I have to hard set stickerChoice
+    {sticker: "👁️", effect: () => {stickerChoice = "👁️"; lineWidth = 0; commandFlag = 1;}},
+    {sticker: "👄", effect: () => {stickerChoice = "👄"; lineWidth = 0; commandFlag = 1;}},
+    {sticker: "🥚", effect: () => {stickerChoice = "🥚"; lineWidth = 0; commandFlag = 1;}},
+    ];
+
+stickers.forEach((stick)=>{
+    stickerArray.push(createSticker(stick.sticker, stick.effect));
+})
 
 
 app.append(appTitle);
