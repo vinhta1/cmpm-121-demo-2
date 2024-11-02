@@ -5,6 +5,7 @@ const app = document.querySelector<HTMLDivElement>("#app")!;
 const canvasArea = <HTMLDivElement> document.getElementById("canvasArea");
 const canvasButtons = <HTMLDivElement> document.getElementById("canvasButtons");
 const markerButtons = <HTMLDivElement> document.getElementById("markerButtons");
+const stickerButtons = <HTMLDivElement> document.getElementById("stickerButtons");
 document.title = APP_NAME;
 const appTitle = document.createElement("h1");
 appTitle.innerHTML = APP_NAME;
@@ -15,6 +16,7 @@ const context = <CanvasRenderingContext2D> canvas.getContext("2d");
 
 //Variables
 let lineWidth: number = 1;
+let stickerChoice: string = "";
 
 //commands
 interface Displayable{
@@ -33,7 +35,13 @@ interface LineCommand extends DrawCommand{
     drag(x: number, y: number): void;
 }
 
-interface mousePreviewCommand extends DrawCommand{
+interface StickerCommand extends DrawCommand{
+    initialPositon: {initialX: number, initialY: number},
+    display(context: CanvasRenderingContext2D): void,
+    drag(x: number, y: number): void;
+}
+
+interface PreviewCommand extends DrawCommand{
     initialPositon: {initialX: number, initialY: number}
     display(context: CanvasRenderingContext2D): void,
 }
@@ -70,7 +78,27 @@ function createLineCommand(initialX: number, initialY: number, context: CanvasRe
     };
 }
 
-function createMousePreviewCommand(initialX: number, initialY: number, context: CanvasRenderingContext2D): mousePreviewCommand{
+function createStickCommand(initialX: number, initialY: number, context: CanvasRenderingContext2D): StickerCommand{
+
+    return {
+        initialPositon: {initialX, initialY},
+        display(context): void {
+            context.save();
+            context.beginPath();
+            context.moveTo(initialX,initialY);
+            this.points.forEach(point => {
+                context.lineTo(point.x, point.y);
+            });
+            context.stroke();
+            context.restore();
+        },
+        drag(x, y){
+            this.points.push({x, y});
+        }
+    };
+}
+
+function createPreviewCommand(initialX: number, initialY: number, context: CanvasRenderingContext2D): PreviewCommand{
     const thisLineWidth = lineWidth;
 
     return {
@@ -79,6 +107,7 @@ function createMousePreviewCommand(initialX: number, initialY: number, context: 
             context.save();
             context.strokeStyle = "black";
             context.lineWidth = thisLineWidth;
+            context.fillText(stickerChoice, initialX-thisLineWidth/2,initialY-thisLineWidth/2);
             context.beginPath();
             context.moveTo(initialX-thisLineWidth/2,initialY-thisLineWidth/2);
             context.lineTo(initialX+thisLineWidth/2,initialY+thisLineWidth/2);
@@ -95,9 +124,8 @@ const toolMoved = new Event("tool-moved");
 
 canvas?.addEventListener("mouseenter", (input) => {
 
-    cursorCommand = createMousePreviewCommand(input.offsetX, input.offsetY, context);
+    cursorCommand = createPreviewCommand(input.offsetX, input.offsetY, context);
     dispatchEvent(toolMoved);
-
 });
 
 canvas?.addEventListener("mouseout", () => {
@@ -109,8 +137,6 @@ canvas?.addEventListener("mouseout", () => {
 canvas?.addEventListener("mousedown", (input) => {
     cursor.active = true;
     cursorCommand = null;
-    //input.offsetX = input.offsetX; input.offsetY = input.offsetY;
-    
     
     redoCommandArray.splice(0,redoCommandArray.length);
     currentCommand = createLineCommand(input.offsetX, input.offsetY, context);
@@ -120,11 +146,10 @@ canvas?.addEventListener("mousedown", (input) => {
 });
 canvas?.addEventListener("mousemove", (input) => {
     if (cursor.active){
-        //input.offsetX = input.offsetX; input.offsetY = input.offsetY;
         (currentCommand as LineCommand).drag(input.offsetX, input.offsetY);
         dispatchEvent(drawingChanged);
     } else {
-        cursorCommand = createMousePreviewCommand(input.offsetX, input.offsetY, context);
+        cursorCommand = createPreviewCommand(input.offsetX, input.offsetY, context);
         dispatchEvent(toolMoved);
     }
 });
@@ -132,6 +157,8 @@ addEventListener("mouseup", (input) => {
     cursor.active = false;
     dispatchEvent(drawingChanged);
 });
+
+
 
 addEventListener("drawing-changed", ()=>{redraw()});
 addEventListener("tool-moved", ()=>{redraw()});
@@ -185,6 +212,7 @@ markerButtons.append(thinMarker);
 
 thinMarker.addEventListener("click", () => {
     lineWidth = 1;
+    stickerChoice = "";
 });
 
 const thickMarker = document.createElement("button");
@@ -193,7 +221,31 @@ markerButtons.append(thickMarker);
 
 thickMarker.addEventListener("click", () => {
     lineWidth = 5;
+    stickerChoice = "";
 });
+
+//sticker buttons
+const stickerArray: any = [];
+function createSticker(sticker: string, effect: (any) => void) {   //create a new sticker function
+    const newSticker = document.createElement("button");
+    newSticker.innerHTML = sticker;
+    stickerButtons.append(newSticker);
+
+    newSticker.addEventListener("click", effect);
+
+    return newSticker;
+}
+
+for (let i = 0; i < 3; i++){
+    let stickers = ["👁️", "👄","🥚"];
+    stickerArray[0] = createSticker(stickers[i],
+        () => {
+            stickerChoice = stickers[i];
+            dispatchEvent(toolMoved);
+        }
+    );
+}
+
 
 app.append(appTitle);
 
