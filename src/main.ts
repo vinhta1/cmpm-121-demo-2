@@ -84,14 +84,16 @@ function createStickerCommand(initialX: number, initialY: number, context: Canva
     let theta = 0;
     let width = context.measureText(thisStickerChoice).width;
     let height = context.measureText(thisStickerChoice).actualBoundingBoxAscent - context.measureText(thisStickerChoice).actualBoundingBoxDescent
-    let thisInitX = initialX - width;
-    let thisInitY = initialY;
+    let thisInitX = initialX - width/2;
+    let thisInitY = initialY + height/2;
+    let scale = 1;
 
     return {
         initialPositon: {initialX, initialY},
         display(context): void {
             context.save();
             context.translate(thisInitX + width/2, thisInitY - height/2)
+            context.scale(scale, scale);
             context.rotate(theta);
             context.translate(-(thisInitX + width/2), -(thisInitY - height/2))
             context.fillText(thisStickerChoice, thisInitX, thisInitY);
@@ -99,6 +101,8 @@ function createStickerCommand(initialX: number, initialY: number, context: Canva
         },
         drag(x, y){
             theta = Math.atan2(y - initialY, x - initialX) + Math.PI/2;
+            console.log(initialX + ", " + x);
+            scale = Math.sqrt((initialX - x)*(initialX - x) + (initialY - y)*(initialY - y));
         }
     };
 }
@@ -107,8 +111,9 @@ function createPreviewCommand(initialX: number, initialY: number, context: Canva
     const thisLineWidth = lineWidth; 
     const thisStickerChoice = stickerChoice;
     let width = context.measureText(thisStickerChoice).width;
-    let thisInitX = initialX - width;
-    let thisInitY = initialY;
+    let height = context.measureText(thisStickerChoice).actualBoundingBoxAscent - context.measureText(thisStickerChoice).actualBoundingBoxDescent
+    let thisInitX = initialX - width/2;
+    let thisInitY = initialY + height/2;
 
     return {
         initialPositon: {initialX, initialY},
