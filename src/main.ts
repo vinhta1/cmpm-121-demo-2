@@ -2,17 +2,23 @@ import "./style.css";
 
 const APP_NAME = "Sketch-a-Stick";
 const app = document.querySelector<HTMLDivElement>("#app")!;
-const canvasArea = <HTMLDivElement> document.getElementById("canvasArea");
 const canvasButtons = <HTMLDivElement> document.getElementById("canvasButtons");
+const colorPicker = <HTMLInputElement> document.querySelector("#colorPicker");
 const markerButtons = <HTMLDivElement> document.getElementById("markerButtons");
 const stickerButtons = <HTMLDivElement> document.getElementById("stickerButtons");
 document.title = APP_NAME;
 const appTitle = document.createElement("h1");
 appTitle.innerHTML = APP_NAME;
 
+colorPicker?.addEventListener("input", ()=>{
+    color = colorPicker.value;
+    dispatchEvent(toolMoved);
+})
+
 //Canvas
 const canvas = <HTMLCanvasElement> document.getElementById("canvas");
 const context = <CanvasRenderingContext2D> canvas.getContext("2d");
+let color = "#000000";
 
 //Variables
 let lineWidth: number = 1;
@@ -57,13 +63,14 @@ let cursorCommand: any = null;
 function createLineCommand(initialX: number, initialY: number, context: CanvasRenderingContext2D): LineCommand{
     const points: {x: number, y: number}[] = [{x: initialX, y: initialY}];
     const thisLineWidth = lineWidth;
+    const thisColor = color;
 
     return {
         initialPositon: {initialX, initialY},
         points,
         display(context): void {
             context.save();
-            context.strokeStyle = "black";
+            context.strokeStyle = thisColor;
             context.lineWidth = thisLineWidth;
             context.beginPath();
             context.moveTo(initialX,initialY);
@@ -107,6 +114,7 @@ function createStickerCommand(initialX: number, initialY: number, context: Canva
 function createPreviewCommand(initialX: number, initialY: number, context: CanvasRenderingContext2D): PreviewCommand{
     const thisLineWidth = lineWidth; 
     const thisStickerChoice = stickerChoice;
+    const thisColor = color;
     let width = context.measureText(thisStickerChoice).width;
     let height = context.measureText(thisStickerChoice).actualBoundingBoxAscent - context.measureText(thisStickerChoice).actualBoundingBoxDescent
     let thisInitX = initialX - width/2;
@@ -116,7 +124,7 @@ function createPreviewCommand(initialX: number, initialY: number, context: Canva
         initialPositon: {initialX, initialY},
         display(context): void {
             context.save();
-            context.strokeStyle = "black";
+            context.strokeStyle = thisColor;
             context.lineWidth = thisLineWidth;
             context.fillText(thisStickerChoice, thisInitX, thisInitY);
             context.beginPath();
@@ -294,11 +302,13 @@ customSticker.innerHTML = "Make-a-Stick";
 stickerButtons.append(customSticker);
 
 customSticker.addEventListener("click", () => {
-    let customText = <string>prompt("Custom sticker text", "🧽");
+    let customText = <string>prompt("Custom sticker text", "🍝");
     if (customText.valueOf() != "" && !stickers.some(stick => stick.sticker === customText)){
         let newSticker = {"sticker": customText, "effect": () => {stickerChoice = customText, lineWidth = 0; commandFlag = 1;}}
         stickers.push(newSticker);
-        stickerArray.push(createSticker(newSticker.sticker, newSticker.effect));
+        let newStickerButton = createSticker(newSticker.sticker, newSticker.effect)
+        stickerArray.push(newStickerButton);
+        newStickerButton.click(); newStickerButton.focus();
     };
 });
 
