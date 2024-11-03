@@ -88,6 +88,7 @@ function createLineCommand(initialX: number, initialY: number, context: CanvasRe
 
 function createStickerCommand(initialX: number, initialY: number, context: CanvasRenderingContext2D): StickerCommand{
     const thisStickerChoice = stickerChoice;
+    const thisColor = color;
     let theta = 0;
     let width = context.measureText(thisStickerChoice).width; let height = context.measureText(thisStickerChoice).actualBoundingBoxAscent - context.measureText(thisStickerChoice).actualBoundingBoxDescent
     let thisInitX = initialX - width/2; let thisInitY = initialY + height/2;
@@ -97,6 +98,7 @@ function createStickerCommand(initialX: number, initialY: number, context: Canva
         initialPositon: {initialX, initialY},
         display(context): void {
             context.save();
+            context.fillStyle = thisColor;
             context.translate(thisInitX + width/2, thisInitY - height/2);
             context.scale(scale, scale);
             context.rotate(theta);
@@ -125,6 +127,7 @@ function createPreviewCommand(initialX: number, initialY: number, context: Canva
         display(context): void {
             context.save();
             context.strokeStyle = thisColor;
+            context.fillStyle = thisColor;
             context.lineWidth = thisLineWidth;
             context.fillText(thisStickerChoice, thisInitX, thisInitY);
             context.beginPath();
