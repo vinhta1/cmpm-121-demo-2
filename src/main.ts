@@ -197,38 +197,54 @@ function redraw(){
     if (cursorCommand) {cursorCommand.display(context)};
 }
 
-//canvas buttons
-const clearButton = document.createElement("button");
-clearButton.innerHTML = "clear";
-canvasButtons.append(clearButton);
+//canvas/edit buttons
+const editArray: any = [];
+function createEdit(name: string, effect: (any) => void) {   //create a new sticker function
+    const newEdit = document.createElement("button");
+    newEdit.innerHTML = name;
+    canvasButtons.append(newEdit);
 
-clearButton.addEventListener("click", () => {
-    commandArray.splice(0, commandArray.length);
-    redoCommandArray.splice(0,redoCommandArray.length);
-    dispatchEvent(drawingChanged);
-});
+    newEdit.addEventListener("click", effect);
 
-const undoButton = document.createElement("button");
-undoButton.innerHTML = "undo";
-canvasButtons.append(undoButton);
+    return newEdit;
+}
 
-undoButton.addEventListener("click", () => {
-    if (commandArray.length > 0){
-        redoCommandArray.push(commandArray.pop()!);
-        dispatchEvent(drawingChanged);
-    }
-});
+const edits = [
+    {"name": "clear", "effect": () => {
+        commandArray.splice(0, commandArray.length);
+        redoCommandArray.splice(0,redoCommandArray.length);
+        dispatchEvent(drawingChanged);}},
+    {"name": "undo", "effect": () => {
+        if (commandArray.length > 0){
+            redoCommandArray.push(commandArray.pop()!);
+            dispatchEvent(drawingChanged);
+        }
+    }},
+    {"name": "redo", "effect": () => {
+        if (redoCommandArray.length > 0){
+            commandArray.push(redoCommandArray.pop()!);
+            dispatchEvent(drawingChanged);
+        }
+    }},
+    {"name": "export", "effect": () => {
+        const anchor = document.createElement("a");
+        const scaledCanvas = document.createElement("canvas");
+        scaledCanvas.width = 1024; scaledCanvas.height = 1024;
+        const newContext = scaledCanvas.getContext("2d");
+        if (newContext){
+            newContext?.scale(4,4);
+            commandArray.forEach((cmd) => cmd.display(newContext));
+        }
+        anchor.href = scaledCanvas.toDataURL("image/png");
+        anchor.download = "sketchpad.png";
+        anchor.click();
+    }}
+];
 
-const redoButton = document.createElement("button");
-redoButton.innerHTML = "redo";
-canvasButtons.append(redoButton);
+edits.forEach((edit)=>{
+    editArray.push(createEdit(edit.name, edit.effect));
+})
 
-redoButton.addEventListener("click", () => {
-    if (redoCommandArray.length > 0){
-        commandArray.push(redoCommandArray.pop()!);
-        dispatchEvent(drawingChanged);
-    }
-});
 
 //marker buttons
 const markerArray: any = [];
@@ -243,8 +259,8 @@ function createMarker(name: string, effect: (any) => void) {   //create a new st
 }
 
 const markers = [
-    {name: "thin", effect: () => {lineWidth = 1; stickerChoice = ""; commandFlag = 0;}},
-    {name: "thick", effect: () => {lineWidth = 5; stickerChoice = ""; commandFlag = 0;}}
+    {"name": "thin", "effect": () => {lineWidth = 1; stickerChoice = ""; commandFlag = 0;}},
+    {"name": "thick", "effect": () => {lineWidth = 5; stickerChoice = ""; commandFlag = 0;}}
 ]
 
 markers.forEach((marker)=>{
