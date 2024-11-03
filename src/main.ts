@@ -82,17 +82,15 @@ function createLineCommand(initialX: number, initialY: number, context: CanvasRe
 function createStickerCommand(initialX: number, initialY: number, context: CanvasRenderingContext2D): StickerCommand{
     const thisStickerChoice = stickerChoice;
     let theta = 0;
-    let width = context.measureText(thisStickerChoice).width;
-    let height = context.measureText(thisStickerChoice).actualBoundingBoxAscent - context.measureText(thisStickerChoice).actualBoundingBoxDescent
-    let thisInitX = initialX - width/2;
-    let thisInitY = initialY + height/2;
+    let width = context.measureText(thisStickerChoice).width; let height = context.measureText(thisStickerChoice).actualBoundingBoxAscent - context.measureText(thisStickerChoice).actualBoundingBoxDescent
+    let thisInitX = initialX - width/2; let thisInitY = initialY + height/2;
     let scale = 1;
 
     return {
         initialPositon: {initialX, initialY},
         display(context): void {
             context.save();
-            context.translate(thisInitX + width/2, thisInitY - height/2)
+            context.translate(thisInitX + width/2, thisInitY - height/2);
             context.scale(scale, scale);
             context.rotate(theta);
             context.translate(-(thisInitX + width/2), -(thisInitY - height/2))
@@ -101,7 +99,6 @@ function createStickerCommand(initialX: number, initialY: number, context: Canva
         },
         drag(x, y){
             theta = Math.atan2(y - initialY, x - initialX) + Math.PI/2;
-            console.log(initialX + ", " + x);
             scale = Math.sqrt((initialX - x)*(initialX - x) + (initialY - y)*(initialY - y));
         }
     };
@@ -267,14 +264,27 @@ function createSticker(sticker: string, effect: (any) => void) {   //create a ne
 }
 
 const stickers = [ //not sure why I have to hard set stickerChoice
-    {sticker: "👁️", effect: () => {stickerChoice = "👁️"; lineWidth = 0; commandFlag = 1;}},
-    {sticker: "👄", effect: () => {stickerChoice = "👄"; lineWidth = 0; commandFlag = 1;}},
-    {sticker: "🥚", effect: () => {stickerChoice = "🥚"; lineWidth = 0; commandFlag = 1;}},
+    {"sticker": "👁️", "effect": () => {stickerChoice = "👁️"; lineWidth = 0; commandFlag = 1;}},
+    {"sticker": "👄", "effect": () => {stickerChoice = "👄"; lineWidth = 0; commandFlag = 1;}},
+    {"sticker": "🥚", "effect": () => {stickerChoice = "🥚"; lineWidth = 0; commandFlag = 1;}},
     ];
 
 stickers.forEach((stick)=>{
     stickerArray.push(createSticker(stick.sticker, stick.effect));
 })
+
+const customSticker = document.createElement("button");
+customSticker.innerHTML = "Make-a-Stick";
+stickerButtons.append(customSticker);
+
+customSticker.addEventListener("click", () => {
+    let customText = <string>prompt("Custom sticker text", "🧽");
+    if (customText.valueOf() != "" && !stickers.some(stick => stick.sticker === customText)){
+        let newSticker = {"sticker": customText, "effect": () => {stickerChoice = customText, lineWidth = 0; commandFlag = 1;}}
+        stickers.push(newSticker);
+        stickerArray.push(createSticker(newSticker.sticker, newSticker.effect));
+    };
+});
 
 
 app.append(appTitle);
