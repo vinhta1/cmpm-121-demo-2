@@ -81,21 +81,34 @@ function createLineCommand(initialX: number, initialY: number, context: CanvasRe
 
 function createStickerCommand(initialX: number, initialY: number, context: CanvasRenderingContext2D): StickerCommand{
     const thisStickerChoice = stickerChoice;
+    let theta = 0;
+    let width = context.measureText(thisStickerChoice).width;
+    let height = context.measureText(thisStickerChoice).actualBoundingBoxAscent - context.measureText(thisStickerChoice).actualBoundingBoxDescent
+    let thisInitX = initialX - width;
+    let thisInitY = initialY;
+
     return {
         initialPositon: {initialX, initialY},
         display(context): void {
             context.save();
-            context.fillText(thisStickerChoice,initialX, initialY);
+            context.translate(thisInitX + width/2, thisInitY - height/2)
+            context.rotate(theta);
+            context.translate(-(thisInitX + width/2), -(thisInitY - height/2))
+            context.fillText(thisStickerChoice, thisInitX, thisInitY);
             context.restore();
         },
         drag(x, y){
-            
+            theta = Math.atan2(y - initialY, x - initialX) + Math.PI/2;
         }
     };
 }
 
 function createPreviewCommand(initialX: number, initialY: number, context: CanvasRenderingContext2D): PreviewCommand{
-    const thisLineWidth = lineWidth;
+    const thisLineWidth = lineWidth; 
+    const thisStickerChoice = stickerChoice;
+    let width = context.measureText(thisStickerChoice).width;
+    let thisInitX = initialX - width;
+    let thisInitY = initialY;
 
     return {
         initialPositon: {initialX, initialY},
@@ -103,7 +116,7 @@ function createPreviewCommand(initialX: number, initialY: number, context: Canva
             context.save();
             context.strokeStyle = "black";
             context.lineWidth = thisLineWidth;
-            context.fillText(stickerChoice, initialX-thisLineWidth/2,initialY-thisLineWidth/2);
+            context.fillText(thisStickerChoice, thisInitX, thisInitY);
             context.beginPath();
             context.moveTo(initialX-thisLineWidth/2,initialY-thisLineWidth/2);
             context.lineTo(initialX+thisLineWidth/2,initialY+thisLineWidth/2);
@@ -127,7 +140,6 @@ canvas?.addEventListener("mouseenter", (input) => {
 canvas?.addEventListener("mouseout", () => {
     cursorCommand = null;
     dispatchEvent(toolMoved);
-    console.log(lineWidth);
 });
 
 canvas?.addEventListener("mousedown", (input) => {
@@ -155,7 +167,7 @@ canvas?.addEventListener("mousemove", (input) => {
                 (currentCommand as LineCommand).drag(input.offsetX, input.offsetY);
                 break;
             case 1:
-                currentCommand = createStickerCommand(input.offsetX, input.offsetY, context);
+                (currentCommand as StickerCommand).drag(input.offsetX, input.offsetY);
                 break;
         }
         dispatchEvent(drawingChanged);
@@ -166,6 +178,7 @@ canvas?.addEventListener("mousemove", (input) => {
 });
 addEventListener("mouseup", (input) => {
     cursor.active = false;
+    context.resetTransform();
     dispatchEvent(drawingChanged);
 });
 
@@ -175,7 +188,6 @@ addEventListener("drawing-changed", ()=>{redraw()});
 addEventListener("tool-moved", ()=>{redraw()});
 
 function redraw(){
-    console.log("Redraw");
     context.clearRect(0, 0, canvas?.offsetWidth, canvas?.offsetHeight);
     
     commandArray.forEach((cmd) => cmd.display(context));
