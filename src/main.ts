@@ -25,31 +25,36 @@ let lineWidth: number = 1;
 let stickerChoice: string = "";
 let commandFlag = 0;
 
+interface Point{
+    x: number;
+    y: number;
+}
+
 //commands
 interface Displayable{
     display(context: CanvasRenderingContext2D): void
 }
 
 interface DrawCommand extends Displayable{
-    initialPositon: {initialX: number, initialY: number},
+    initialPositon: Point,
     display(context: CanvasRenderingContext2D): void;
 }
 
 interface LineCommand extends DrawCommand{
-    initialPositon: {initialX: number, initialY: number},
+    initialPositon: Point,
     points: {x: number, y: number}[],
     display(context: CanvasRenderingContext2D): void,
     drag(x: number, y: number): void;
 }
 
 interface StickerCommand extends DrawCommand{
-    initialPositon: {initialX: number, initialY: number},
+    initialPositon: Point,
     display(context: CanvasRenderingContext2D): void,
     drag(x: number, y: number): void;
 }
 
 interface PreviewCommand extends DrawCommand{
-    initialPositon: {initialX: number, initialY: number}
+    initialPositon: Point,
     display(context: CanvasRenderingContext2D): void,
 }
 
@@ -57,16 +62,16 @@ const commandArray: Displayable[] = [];
 const redoCommandArray: Displayable[] = [];
 
 let currentCommand: Displayable;
-let cursorCommand: any = null;
+let cursorCommand: PreviewCommand | null = null;
 
 //createLineCommand thanks Brace
-function createLineCommand(initialX: number, initialY: number, context: CanvasRenderingContext2D): LineCommand{
-    const points: {x: number, y: number}[] = [{x: initialX, y: initialY}];
+function createLineCommand(initialX: number, initialY: number): LineCommand{
+    const points: Point[] = [{x: initialX, y: initialY}];
     const thisLineWidth = lineWidth;
     const thisColor = color;
 
     return {
-        initialPositon: {initialX, initialY},
+        initialPositon: {x: initialX, y: initialY},
         points,
         display(context): void {
             context.save();
@@ -81,7 +86,7 @@ function createLineCommand(initialX: number, initialY: number, context: CanvasRe
             context.restore();
         },
         drag(x, y){
-            this.points.push({x, y});
+            this.points.push({x: x, y: y});
         }
     };
 }
@@ -89,13 +94,16 @@ function createLineCommand(initialX: number, initialY: number, context: CanvasRe
 function createStickerCommand(initialX: number, initialY: number, context: CanvasRenderingContext2D): StickerCommand{
     const thisStickerChoice = stickerChoice;
     const thisColor = color;
+    const width = context.measureText(thisStickerChoice).width; 
+    const height = context.measureText(thisStickerChoice).actualBoundingBoxAscent - context.measureText(thisStickerChoice).actualBoundingBoxDescent
+    const thisInitX = initialX - width/2; 
+    const thisInitY = initialY + height/2;
+
     let theta = 0;
-    let width = context.measureText(thisStickerChoice).width; let height = context.measureText(thisStickerChoice).actualBoundingBoxAscent - context.measureText(thisStickerChoice).actualBoundingBoxDescent
-    let thisInitX = initialX - width/2; let thisInitY = initialY + height/2;
     let scale = 1;
 
     return {
-        initialPositon: {initialX, initialY},
+        initialPositon: {x: initialX, y: initialY},
         display(context): void {
             context.save();
             context.fillStyle = thisColor;
@@ -117,13 +125,13 @@ function createPreviewCommand(initialX: number, initialY: number, context: Canva
     const thisLineWidth = lineWidth; 
     const thisStickerChoice = stickerChoice;
     const thisColor = color;
-    let width = context.measureText(thisStickerChoice).width;
-    let height = context.measureText(thisStickerChoice).actualBoundingBoxAscent - context.measureText(thisStickerChoice).actualBoundingBoxDescent
-    let thisInitX = initialX - width/2;
-    let thisInitY = initialY + height/2;
+    const width = context.measureText(thisStickerChoice).width;
+    const height = context.measureText(thisStickerChoice).actualBoundingBoxAscent - context.measureText(thisStickerChoice).actualBoundingBoxDescent
+    const thisInitX = initialX - width/2;
+    const thisInitY = initialY + height/2;
 
     return {
-        initialPositon: {initialX, initialY},
+        initialPositon: {x: initialX, y: initialY},
         display(context): void {
             context.save();
             context.strokeStyle = thisColor;
@@ -162,7 +170,7 @@ canvas?.addEventListener("mousedown", (input) => {
     redoCommandArray.splice(0,redoCommandArray.length);
     switch (commandFlag){
         case 0:
-            currentCommand = createLineCommand(input.offsetX, input.offsetY, context);
+            currentCommand = createLineCommand(input.offsetX, input.offsetY);
             break;
         case 1:
             currentCommand = createStickerCommand(input.offsetX, input.offsetY, context);
@@ -189,7 +197,7 @@ canvas?.addEventListener("mousemove", (input) => {
         dispatchEvent(toolMoved);
     }
 });
-addEventListener("mouseup", (input) => {
+addEventListener("mouseup", () => {
     cursor.active = false;
     context.resetTransform();
     dispatchEvent(drawingChanged);
@@ -209,8 +217,8 @@ function redraw(){
 }
 
 //canvas/edit buttons
-const editArray: any = [];
-function createEdit(name: string, effect: (any) => void) {   //create a new sticker function
+const editArray: HTMLButtonElement[] = [];
+function createEdit(name: string, effect: () => void) {   //create a new sticker function
     const newEdit = document.createElement("button");
     newEdit.innerHTML = name;
     canvasButtons.append(newEdit);
@@ -258,8 +266,8 @@ edits.forEach((edit)=>{
 
 
 //marker buttons
-const markerArray: any = [];
-function createMarker(name: string, effect: (any) => void) {   //create a new sticker function
+const markerArray: HTMLButtonElement[] = [];
+function createMarker(name: string, effect: () => void) {   //create a new sticker function
     const newMarker = document.createElement("button");
     newMarker.innerHTML = name;
     markerButtons.append(newMarker);
@@ -279,8 +287,8 @@ markers.forEach((marker)=>{
 })
 
 //sticker buttons
-const stickerArray: any = [];
-function createSticker(sticker: string, effect: (any) => void) {   //create a new sticker function
+const stickerArray: HTMLButtonElement[] = [];
+function createSticker(sticker: string, effect: () => void) {   //create a new sticker function
     const newSticker = document.createElement("button");
     newSticker.innerHTML = sticker;
     stickerButtons.append(newSticker);
@@ -305,11 +313,11 @@ customSticker.innerHTML = "Make-a-Stick";
 stickerButtons.append(customSticker);
 
 customSticker.addEventListener("click", () => {
-    let customText = <string>prompt("Custom sticker text", "🍝");
+    const customText = <string>prompt("Custom sticker text", "🍝");
     if (customText.valueOf() != "" && !stickers.some(stick => stick.sticker === customText)){
-        let newSticker = {"sticker": customText, "effect": () => {stickerChoice = customText, lineWidth = 0; commandFlag = 1;}}
+        const newSticker = {"sticker": customText, "effect": () => {stickerChoice = customText, lineWidth = 0; commandFlag = 1;}}
         stickers.push(newSticker);
-        let newStickerButton = createSticker(newSticker.sticker, newSticker.effect)
+        const newStickerButton = createSticker(newSticker.sticker, newSticker.effect)
         stickerArray.push(newStickerButton);
         newStickerButton.click(); newStickerButton.focus();
     };
@@ -317,14 +325,3 @@ customSticker.addEventListener("click", () => {
 
 
 app.append(appTitle);
-
-//Test
-// for ( let i = 0; i <= 3; i ++){
-//     let x = i * 10 + 30; let y = i * 30 + 30;
-//     currentCommand = [];
-//     currentCommand.push({x,y});
-//     y *= 2;
-//     currentCommand.push({x,y});
-//     commandArray.push(currentCommand);
-//     dispatchEvent(drawingChanged);
-// }
