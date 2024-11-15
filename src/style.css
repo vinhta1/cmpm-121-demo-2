@@ -107,3 +107,36 @@ button:focus-visible {
     background-color: #f9f9f9;
   }
 }
+
+/* player experience styling. Button spacing and color for quality experience */
+
+#canvasButtons,
+#markerButtons,
+#stickerButtons {
+    margin-top: 15px;
+    display: flex;
+    justify-content: center;
+    gap: 10px;
+}
+
+#canvasButtons button {
+  background-color: #e2443f;
+  color: #fff;
+}
+
+#markerButtons button {
+  background-color: #66c44f;
+  color: #fff;
+}
+
+#stickerButtons button {
+  background-color: #4a87e4;
+  color: #fff;
+}
+
+#colorPicker {
+  margin-top: 15px;
+  display: block;
+  margin-left: auto;
+  margin-right: auto;
+}
